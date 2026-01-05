@@ -1,12 +1,7 @@
 import { Router } from 'express';
 import busboy from 'busboy';
-import { detectReportType, ReportType } from '../parsers/detect-type.js';
-import { parseViolationsCsv } from '../parsers/violations.js';
-import { parseInspectionsCsv } from '../parsers/inspections.js';
-import { parsePermitsCsv } from '../parsers/permits.js';
-import { processViolationsSync } from '../sync/violations-sync.js';
-import { processInspectionsSync } from '../sync/inspections-sync.js';
-import { processPermitsSync } from '../sync/permits-sync.js';
+import { parseCodeEnforcementCasesCsv } from '../parsers/code-enforcement-cases.js';
+import { processCasesSync } from '../sync/cases-sync.js';
 
 export const webhookRouter = Router();
 
@@ -25,7 +20,7 @@ interface ParsedEmail {
  * POST /webhook/sendgrid
  *
  * Receives inbound email from SendGrid Inbound Parse.
- * Extracts CSV attachments and processes them.
+ * Only processes Code Enforcement Cases CSV attachments.
  */
 webhookRouter.post('/sendgrid', (req, res) => {
   const email: ParsedEmail = {
@@ -73,12 +68,23 @@ webhookRouter.post('/sendgrid', (req, res) => {
     console.log('-'.repeat(60));
 
     try {
-      // Check if this is a permit email (subject contains "permit")
-      const isPermitEmail = email.subject.toLowerCase().includes('permit');
+      const subjectLower = email.subject.toLowerCase();
+      const filenameLower = email.attachments.map(a => a.filename.toLowerCase()).join(' ');
 
-      if (isPermitEmail) {
-        console.log(`[WEBHOOK] Permit email detected (subject contains "permit")`);
+      // Only process Code Enforcement Cases emails
+      const isCaseEmail =
+        subjectLower.includes('code_enforcement_cases') ||
+        subjectLower.includes('code enforcement cases') ||
+        filenameLower.includes('code_enforcement_cases') ||
+        filenameLower.includes('code enforcement cases');
+
+      if (!isCaseEmail) {
+        console.log(`[WEBHOOK] Not a Code Enforcement Cases email, ignoring`);
+        res.status(200).json({ success: true, message: 'Ignored - not a Code Enforcement Cases email' });
+        return;
       }
+
+      console.log(`[WEBHOOK] Code Enforcement Cases email detected`);
 
       // Process each CSV attachment
       for (const attachment of email.attachments) {
@@ -87,44 +93,11 @@ webhookRouter.post('/sendgrid', (req, res) => {
           continue;
         }
 
+        console.log(`[WEBHOOK] Processing: ${attachment.filename}`);
         const csvContent = attachment.content.toString('utf-8');
-
-        // If subject contains "permit", process any CSV as permits
-        if (isPermitEmail) {
-          console.log(`[WEBHOOK] Processing as permits: ${attachment.filename}`);
-          const permits = await parsePermitsCsv(csvContent);
-          console.log(`[PARSE] Parsed ${permits.length} permit records`);
-          await processPermitsSync(permits);
-          continue;
-        }
-
-        // Otherwise, use filename-based detection for violations/inspections
-        const reportType = detectReportType(attachment.filename);
-        console.log(`[WEBHOOK] Processing ${reportType}: ${attachment.filename}`);
-
-        switch (reportType) {
-          case ReportType.VIOLATIONS:
-            const violations = await parseViolationsCsv(csvContent);
-            console.log(`[PARSE] Parsed ${violations.length} violation records`);
-            await processViolationsSync(violations);
-            break;
-
-          case ReportType.INSPECTIONS:
-            const inspections = await parseInspectionsCsv(csvContent);
-            console.log(`[PARSE] Parsed ${inspections.length} inspection records`);
-            await processInspectionsSync(inspections);
-            break;
-
-          case ReportType.PERMITS:
-            const permits = await parsePermitsCsv(csvContent);
-            console.log(`[PARSE] Parsed ${permits.length} permit records`);
-            await processPermitsSync(permits);
-            break;
-
-          case ReportType.UNKNOWN:
-            console.log(`[WEBHOOK] Unknown report type, skipping: ${attachment.filename}`);
-            break;
-        }
+        const cases = await parseCodeEnforcementCasesCsv(csvContent);
+        console.log(`[PARSE] Parsed ${cases.length} case records`);
+        await processCasesSync(cases);
       }
 
       console.log('-'.repeat(60));

@@ -27,16 +27,10 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 async function main() {
   console.log('='.repeat(60));
-  console.log('CORONA TRAKIT SYNC - Starting up...');
+  console.log('CORONA CODE ENFORCEMENT CASE SYNC - Starting up...');
   console.log('='.repeat(60));
   console.log(`Environment: ${config.nodeEnv}`);
-  console.log(`Ticket Updates: ${config.ticketUpdatesEnabled ? 'ENABLED' : 'DISABLED (dry run mode)'}`);
-  console.log(`LLM Matching: ${config.llmMatchingEnabled ? 'ENABLED' : 'DISABLED'}`);
-  if (config.llmMatchingEnabled) {
-    console.log(`  Model: ${config.openaiModel}`);
-    console.log(`  Search radius: ${config.matchingRadiusMeters}m`);
-    console.log(`  Lookback: ${config.matchingLookbackDays} days`);
-  }
+  console.log(`Case Updates: ${config.caseUpdatesEnabled ? 'ENABLED' : 'DISABLED (dry run mode)'}`);
   console.log('-'.repeat(60));
 
   // Initialize database
