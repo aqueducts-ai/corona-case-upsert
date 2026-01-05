@@ -13,6 +13,7 @@ import {
   findTicketByCaseNumber,
   getTicketById,
   updateTicketCustomFields,
+  addTicketComment,
   CodeComplianceCustomFields,
 } from './threefold.js';
 
@@ -160,6 +161,11 @@ export async function processCasesSync(records: CodeEnforcementCaseRecord[]): Pr
 
         // Update ticket custom fields in Threefold
         await updateTicketCustomFields(ticket.id, updateFields);
+
+        // Add comment when case is closed (close date is being set)
+        if (hasClosedChange && wantClosed) {
+          await addTicketComment(ticket.id, `Case ${change.caseNo} is now closed`);
+        }
 
         // Cache the ticket ID
         await updateCaseThreefoldId(change.caseNo, ticket.id);

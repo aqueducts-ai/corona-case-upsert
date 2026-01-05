@@ -273,3 +273,29 @@ export async function updateTicketCustomFields(
 
   console.log(`[THREEFOLD] Updated custom fields for ticket #${ticketId}`);
 }
+
+/**
+ * Add a comment to a Threefold ticket.
+ */
+export async function addTicketComment(ticketId: number, content: string): Promise<void> {
+  await rateLimitedRequest();
+
+  const formData = new FormData();
+  formData.append('ticket_id', ticketId.toString());
+  formData.append('content', content);
+
+  const response = await fetch(`${config.threefoldApiUrl}/api/comments/external`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${config.threefoldApiToken}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to add comment: ${response.status} ${error}`);
+  }
+
+  console.log(`[THREEFOLD] Added comment to ticket #${ticketId}`);
+}
