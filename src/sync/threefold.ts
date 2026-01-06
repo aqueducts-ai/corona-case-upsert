@@ -242,7 +242,7 @@ export interface CodeComplianceCustomFields {
 
 /**
  * Update a ticket's custom fields.
- * Uses PATCH /api/tickets/{ticket_id} endpoint.
+ * Uses POST /api/external/tickets/{id}/custom-fields endpoint.
  */
 export async function updateTicketCustomFields(
   ticketId: number,
@@ -255,9 +255,9 @@ export async function updateTicketCustomFields(
   };
 
   const response = await fetch(
-    `${config.threefoldApiUrl}/api/tickets/${ticketId}`,
+    `${config.threefoldApiUrl}/api/external/tickets/${ticketId}/custom-fields`,
     {
-      method: 'PATCH',
+      method: 'POST',
       headers: {
         Authorization: `Bearer ${config.threefoldApiToken}`,
         'Content-Type': 'application/json',
