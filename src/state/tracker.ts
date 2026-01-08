@@ -291,3 +291,22 @@ export async function getCaseThreefoldId(caseNo: string): Promise<number | null>
   );
   return result.rows[0]?.threefold_ticket_id ?? null;
 }
+
+/**
+ * Clear all cached case state and sync logs.
+ * Used for forcing a full re-sync.
+ */
+export async function clearCaseCache(): Promise<{ cases: number; logs: number }> {
+  const client = await pool.connect();
+  try {
+    const casesResult = await client.query(`DELETE FROM case_state`);
+    const logsResult = await client.query(`DELETE FROM sync_log`);
+
+    return {
+      cases: casesResult.rowCount ?? 0,
+      logs: logsResult.rowCount ?? 0,
+    };
+  } finally {
+    client.release();
+  }
+}

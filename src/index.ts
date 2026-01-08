@@ -16,6 +16,19 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Admin: Clear cache endpoint
+app.post('/admin/clear-cache', async (_req, res) => {
+  const { clearCaseCache } = await import('./state/tracker.js');
+  try {
+    const result = await clearCaseCache();
+    console.log('[ADMIN] Cache cleared:', result);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error('[ADMIN] Failed to clear cache:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // SendGrid webhook route (uses raw body parsing via busboy)
 app.use('/webhook', webhookRouter);
 
